@@ -1,0 +1,48 @@
+# Object files and executables
+*.o
+*.out
+*.exe
+a.out
+
+# Files without extensions
+*
+!*.*
+!*/
+
+# Debug files
+*.dSYM/
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects
+*.so
+*.so.*
+*.dylib
+
+# Dependencies
+*.d
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build directories
+build/
+dist/
+bin/
+obj/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
