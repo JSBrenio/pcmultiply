@@ -97,12 +97,21 @@ void *cons_worker(void *arg)
   conStats->sumtotal = 0;
   Matrix *m1 = NULL, *m2 = NULL, *m3 = NULL;
   while (1) {
+    printf("we went back up\n");
     pthread_mutex_lock(&lock);
+    printf("we took the lock\n");
+    fflush(NULL);
     if (count <= 0 && done == numw) {
-      pthread_mutex_unlock(&lock);
+      printf("1st if statement\n");
+      printf("%d %d %d\n", count, done, matrix_count);
+      fflush(NULL);
+      pthread_cond_signal(&empty);
       break;
     }
     while(count <= 0 && done != numw) {
+      printf("1st while loop\n");
+      printf("%d %d %d\n", count, done, matrix_count);
+      pthread_cond_signal(&empty);
       pthread_cond_wait(&full, &lock);
     }
     m1 = get();
@@ -115,6 +124,8 @@ void *cons_worker(void *arg)
     pthread_cond_signal(&empty);
 
     while(count <= 0 && done != numw) {
+      printf("2nd while loop\n");
+      printf("%d %d %d\n", count, done, matrix_count);
       pthread_cond_wait(&full, &lock);
     }
     m2 = get();
@@ -128,6 +139,7 @@ void *cons_worker(void *arg)
     pthread_cond_signal(&empty);
     m3 = MatrixMultiply(m1, m2);
     while (m3 == NULL) {
+        fflush(NULL);
       if (count <= 0 && done == numw && m2 == NULL) {
         printf("BREAKING 1\n");
         fflush(NULL);
@@ -136,6 +148,8 @@ void *cons_worker(void *arg)
       FreeMatrix(m2);
       while(count <= 0 && done != numw) {
         pthread_cond_wait(&full, &lock);
+        printf("we were here, waiting\n");
+        fflush(NULL);
       }
       m2 = get();
       if (m2 == NULL) {
@@ -149,6 +163,8 @@ void *cons_worker(void *arg)
       m3 = MatrixMultiply(m1, m2);
     }
     if (m2 == NULL) {
+      printf("This is not okay\n");
+        fflush(NULL);
       pthread_mutex_unlock(&lock);
       continue;
     }
@@ -161,9 +177,9 @@ void *cons_worker(void *arg)
     printf("\n");
     fflush(NULL);
 
-    FreeMatrix(m3);
-    FreeMatrix(m2);
-    FreeMatrix(m1);
+    if(m3 != NULL) FreeMatrix(m3);
+    if(m2 != NULL) FreeMatrix(m2);
+    if(m1 != NULL) FreeMatrix(m1);
     pthread_mutex_unlock(&lock);
   }
   return conStats;
