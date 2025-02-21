@@ -83,7 +83,7 @@ void *cons_worker(void *arg)
   printf("DEBUG CON START\n");
   fflush(NULL);
 
-  Matrix *m1, *m2, *m3;
+  Matrix *m1, *m2, *m3 = NULL;
   int i;
   while(i != NUMBER_OF_MATRICES) {
     pthread_mutex_lock(&lock);
@@ -111,19 +111,24 @@ void *cons_worker(void *arg)
       while(count == 0 && done != 1) {
         pthread_cond_wait(&full, &lock);
       }
+      printf("IMBOUTAGET\n");
+      fflush(NULL);
       m2 = get();
       i++;
       pthread_cond_signal(&empty);
       conStats->matrixtotal++;
       
-      m3 = MatrixMultiply(m1, m2);
+      printf("IMBOUTAMULT\n");
+      fflush(NULL);
+      if (m1 != NULL && m2 != NULL) m3 = MatrixMultiply(m1, m2);
+      printf("IMDONEMULTING\n");
+      fflush(NULL);
       if (m3 == NULL && i == NUMBER_OF_MATRICES) {
-        FreeMatrix(m3);
-        FreeMatrix(m2);
-        FreeMatrix(m1);
         pthread_mutex_unlock(&lock);
         return conStats;
       }
+      printf("IMBOUTAIF\n");
+      fflush(NULL);
       if (m3 == NULL) {
         FreeMatrix(m2);
       }
