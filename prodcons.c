@@ -28,6 +28,7 @@ pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
 int fill = 0;
 int use = 0;
 int count = 0;
+int matrix_count = 0;
 
 // Bounded buffer put() get()
 int put(Matrix * value)
@@ -35,6 +36,7 @@ int put(Matrix * value)
   bigmatrix[fill] = value;
   fill = (fill + 1) % BOUNDED_BUFFER_SIZE;
   count++;
+  matrix_count++;
   //increment_cnt(&counter);
   return EXIT_SUCCESS;
 }
@@ -50,6 +52,7 @@ Matrix * get()
 // Matrix PRODUCER worker thread
 void *prod_worker(void *arg)
 {
+  ProdConsStats *prodStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
   printf("DEBUG PROD START\n");
   fflush(NULL);
   for (int i = 0; i < NUMBER_OF_MATRICES; i++) {
@@ -70,6 +73,7 @@ void *prod_worker(void *arg)
 // Matrix CONSUMER worker thread
 void *cons_worker(void *arg)
 {
+  ProdConsStats *conStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
   printf("DEBUG CON START\n");
   fflush(NULL);
 
@@ -84,25 +88,30 @@ void *cons_worker(void *arg)
     }
     m1 = get();
     pthread_cond_signal(&empty);
+    conStats->matrixtotal++;
 
-    while(count == 0) {
-      pthread_cond_wait(&full, &lock);
-    }
-    m2 = get();
-    pthread_cond_signal(&empty);
+    do {
+      printf("I KEEP PRINTING\n");
+      fflush(NULL);
+      while(count == 0 && matrix_count != NUMBER_OF_MATRICES) {
+        pthread_cond_wait(&full, &lock);
+      }
+      m2 = get();
+      pthread_cond_signal(&empty);
+      conStats->matrixtotal++;
 
-    m3 = MatrixMultiply(m1, m2);
-    while (m3 == NULL) {
-        printf("I KEEP PRINTING\n");
-        fflush(NULL);
+      if (m3 != NULL) {
         FreeMatrix(m2);
-        while(count == 0) {
-          pthread_cond_wait(&full, &lock);
-        }
-        m2 = get();
-        pthread_cond_signal(&empty);
-        m3 = MatrixMultiply(m1, m2);
-    }
+      }
+      m3 = MatrixMultiply(m1, m2);
+      if (m3 == NULL && matrix_count == NUMBER_OF_MATRICES) {
+        FreeMatrix(m3);
+        FreeMatrix(m2);
+        FreeMatrix(m1);
+        return;
+      }
+    } while (m3 == NULL);
+    conStats->multtotal++;
     DisplayMatrix(m1,stdout);
     printf("    X\n");
     DisplayMatrix(m2,stdout);
@@ -114,6 +123,9 @@ void *cons_worker(void *arg)
     FreeMatrix(m3);
     FreeMatrix(m2);
     FreeMatrix(m1);
+    if ( matrix_count == NUMBER_OF_MATRICES) {
+      return;
+    }
     pthread_mutex_unlock(&lock);
   }
   return NULL;
