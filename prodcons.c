@@ -96,7 +96,7 @@ void *cons_worker(void *arg)
   fflush(NULL);
 
   Matrix *m1, *m2, *m3 = NULL;
-  while (matrix_count < NUMBER_OF_MATRICES) {
+  while(i != NUMBER_OF_MATRICES) {
     pthread_mutex_lock(&lock);
     printf("CON %lu LOOPING i = %d\n", pthread_self(),  matrix_count);
     fflush(NULL);
@@ -104,7 +104,7 @@ void *cons_worker(void *arg)
       pthread_mutex_unlock(&lock);
       return conStats;
     }
-    while(count == 0 && done != numw) {
+    while(count == 0 && done == 0) {
       pthread_cond_wait(&full, &lock);
     }
     m1 = get();
@@ -143,9 +143,8 @@ void *cons_worker(void *arg)
       }
       printf("IMBOUTAIF\n");
       fflush(NULL);
-      if (m3 == NULL) {
-        if(m2 != NULL)FreeMatrix(m2);
-      }
+      printf("%lu\n", pthread_self());
+      fflush(NULL);
     } while (m3 == NULL);
     conStats->multtotal++;
     DisplayMatrix(m1,stdout);
@@ -156,9 +155,9 @@ void *cons_worker(void *arg)
     printf("\n");
     fflush(NULL);
 
-    FreeMatrix(m3);
-    FreeMatrix(m2);
-    FreeMatrix(m1);
+    if (m3 != NULL) FreeMatrix(m3);
+    if (m2 != NULL) FreeMatrix(m2);
+    if (m1 != NULL) FreeMatrix(m1);
     pthread_mutex_unlock(&lock);
   }
   return conStats;
