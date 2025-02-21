@@ -23,12 +23,14 @@
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t full = PTHREAD_COND_INITIALIZER;
 pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
+pthread_cond_t doneProducing = PTHREAD_COND_INITIALIZER;
 
 //struct counter_t counter;
 int fill = 0;
 int use = 0;
 int count = 0;
 int matrix_count = 0;
+int done = 0;
 
 // Bounded buffer put() get()
 int put(Matrix * value)
@@ -55,19 +57,23 @@ void *prod_worker(void *arg)
   ProdConsStats *prodStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
   printf("DEBUG PROD START\n");
   fflush(NULL);
-  for (int i = 0; i < NUMBER_OF_MATRICES; i++) {
-    printf("PROD LOOPING i = %d\n", i);
+  while(matrix_count != NUMBER_OF_MATRICES) {
+    pthread_mutex_lock(&lock);
+    printf("PROD LOOPING i = %d\n", matrix_count);
     fflush(NULL);
 
-    pthread_mutex_lock(&lock);
     while(count == BOUNDED_BUFFER_SIZE) {
       pthread_cond_wait(&empty, &lock);
     }
     put(GenMatrixRandom());
+    prodStats->matrixtotal++;
     pthread_cond_signal(&full);
     pthread_mutex_unlock(&lock);
   }
-  return NULL;
+  pthread_mutex_lock(&lock);
+  done = 1;
+  pthread_mutex_unlock(&lock);
+  return prodStats;
 }
 
 // Matrix CONSUMER worker thread
@@ -78,37 +84,48 @@ void *cons_worker(void *arg)
   fflush(NULL);
 
   Matrix *m1, *m2, *m3;
-  for (int i=0;i<NUMBER_OF_MATRICES;i++)
-  {
+  int i;
+  while(i != NUMBER_OF_MATRICES) {
+    pthread_mutex_lock(&lock);
     printf("CON LOOPING i = %d\n", i);
     fflush(NULL);
-    pthread_mutex_lock(&lock);
-    while(count == 0) {
+    if (count == 0 && done == 1) {
+      pthread_mutex_unlock(&lock);
+      return conStats;
+    }
+    while(count == 0 && done != 1) {
       pthread_cond_wait(&full, &lock);
     }
     m1 = get();
+    i++;
     pthread_cond_signal(&empty);
     conStats->matrixtotal++;
 
     do {
       printf("I KEEP PRINTING\n");
       fflush(NULL);
-      while(count == 0 && matrix_count != NUMBER_OF_MATRICES) {
+      if (count == 0 && done == 1) {
+        pthread_mutex_unlock(&lock);
+        return conStats;
+      }
+      while(count == 0 && done != 1) {
         pthread_cond_wait(&full, &lock);
       }
       m2 = get();
+      i++;
       pthread_cond_signal(&empty);
       conStats->matrixtotal++;
-
-      if (m3 != NULL) {
-        FreeMatrix(m2);
-      }
+      
       m3 = MatrixMultiply(m1, m2);
-      if (m3 == NULL && matrix_count == NUMBER_OF_MATRICES) {
+      if (m3 == NULL && i == NUMBER_OF_MATRICES) {
         FreeMatrix(m3);
         FreeMatrix(m2);
         FreeMatrix(m1);
-        return;
+        pthread_mutex_unlock(&lock);
+        return conStats;
+      }
+      if (m3 == NULL) {
+        FreeMatrix(m2);
       }
     } while (m3 == NULL);
     conStats->multtotal++;
@@ -123,10 +140,7 @@ void *cons_worker(void *arg)
     FreeMatrix(m3);
     FreeMatrix(m2);
     FreeMatrix(m1);
-    if ( matrix_count == NUMBER_OF_MATRICES) {
-      return;
-    }
     pthread_mutex_unlock(&lock);
   }
-  return NULL;
+  return conStats;
 }

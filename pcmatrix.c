@@ -95,8 +95,6 @@ int main (int argc, char * argv[])
   bigmatrix = (Matrix **) malloc(sizeof(Matrix *) * BOUNDED_BUFFER_SIZE);
 
   // Here is an example to define one producer and one consumer
-  struct ProdConsStats;
-
   pthread_t pr;
   pthread_t co;
 
@@ -111,10 +109,17 @@ int main (int argc, char * argv[])
   int constot = 0; // total sum of elements for matrices consumed
   int consmul = 0; // total # multiplications
 
+  ProdConsStats *stats;
   // consume ProdConsStats from producer and consumer threads [HINT: return from join]
+  pthread_join(pr, &stats);
+  prs += stats->matrixtotal;
+  free(stats);
+  pthread_join(co, &stats);
+  cos += stats->matrixtotal;
+  consmul += stats->multtotal;
+  prodtot += prs;
+  constot += cos;
   // add up total matrix stats in prs, cos, prodtot, constot, consmul
-  pthread_join(pr, NULL);
-  pthread_join(co, NULL);
 
   printf("Sum of Matrix elements --> Produced=%d = Consumed=%d\n",prs,cos);
   printf("Matrices produced=%d consumed=%d multiplied=%d\n",prodtot,constot,consmul);
