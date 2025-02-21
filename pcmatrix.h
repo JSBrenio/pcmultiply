@@ -8,6 +8,7 @@
 
 // Number of worker threads - NUMWORK producers, NUMWORK consumers
 #define NUMWORK 1
+int numw;
 
 // Constant for enabling and disabling DEBUG output
 #define OUTPUT 0

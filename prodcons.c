@@ -57,21 +57,32 @@ void *prod_worker(void *arg)
   ProdConsStats *prodStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
   printf("DEBUG PROD START\n");
   fflush(NULL);
-  while(matrix_count != NUMBER_OF_MATRICES) {
+  while(1) {
     pthread_mutex_lock(&lock);
-    printf("PROD LOOPING i = %d\n", matrix_count);
+    printf("PROD %lu LOOPING i = %d\n", pthread_self(),  matrix_count);
     fflush(NULL);
+    if (matrix_count >= NUMBER_OF_MATRICES) {
+      pthread_mutex_unlock(&lock);
+      break;
+    }
 
-    while(count == BOUNDED_BUFFER_SIZE) {
+    while(count == BOUNDED_BUFFER_SIZE) { // when full
+      printf("PROD SLEEPING\n");
+      printf("Thread ID: %lu \n", pthread_self());
+      fflush(NULL);
       pthread_cond_wait(&empty, &lock);
     }
-    put(GenMatrixRandom());
-    prodStats->matrixtotal++;
-    pthread_cond_signal(&full);
+    printf("PROD AWAKE\n");
+    fflush(NULL);
+    if (matrix_count < NUMBER_OF_MATRICES) {
+      put(GenMatrixRandom());
+      prodStats->matrixtotal++;
+      pthread_cond_signal(&full);
+    }
     pthread_mutex_unlock(&lock);
   }
   pthread_mutex_lock(&lock);
-  done = 1;
+  done++;
   pthread_mutex_unlock(&lock);
   return prodStats;
 }
@@ -87,13 +98,13 @@ void *cons_worker(void *arg)
   int i;
   while(i != NUMBER_OF_MATRICES) {
     pthread_mutex_lock(&lock);
-    printf("CON LOOPING i = %d\n", i);
+    printf("CON %lu LOOPING i = %d\n", pthread_self(),  matrix_count);
     fflush(NULL);
-    if (count == 0 && done == 1) {
+    if (count == 0 && done == numw) {
       pthread_mutex_unlock(&lock);
       return conStats;
     }
-    while(count == 0 && done != 1) {
+    while(count == 0 && done != numw) {
       pthread_cond_wait(&full, &lock);
     }
     m1 = get();
@@ -104,11 +115,11 @@ void *cons_worker(void *arg)
     do {
       printf("I KEEP PRINTING\n");
       fflush(NULL);
-      if (count == 0 && done == 1) {
+      if (count == 0 && done == numw) {
         pthread_mutex_unlock(&lock);
         return conStats;
       }
-      while(count == 0 && done != 1) {
+      while(count == 0 && done != numw) {
         pthread_cond_wait(&full, &lock);
       }
       printf("IMBOUTAGET\n");

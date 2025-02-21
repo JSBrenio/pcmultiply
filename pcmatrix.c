@@ -42,9 +42,9 @@
 int main (int argc, char * argv[])
 {
   // Process command line arguments
-  int numw = NUMWORK;
   if (argc==1)
   {
+    numw=NUMWORK;
     BOUNDED_BUFFER_SIZE=MAX;
     NUMBER_OF_MATRICES=LOOPS;
     MATRIX_MODE=DEFAULT_MATRIX_MODE;
@@ -95,13 +95,20 @@ int main (int argc, char * argv[])
   bigmatrix = (Matrix **) malloc(sizeof(Matrix *) * BOUNDED_BUFFER_SIZE);
 
   // Here is an example to define one producer and one consumer
-  pthread_t pr;
-  pthread_t co;
+  pthread_t pr[numw];
+  pthread_t co[numw];
 
   // Add your code here to create threads and so on
-  pthread_create(&pr, NULL, prod_worker, NULL);
-  pthread_create(&co, NULL, cons_worker, NULL);
-
+  for (int i = 0; i < numw; i++) {
+    if(pthread_create(&pr[i], NULL, prod_worker, NULL) == 0) {
+      printf("PROD %d\n", i);
+      fflush(NULL);
+    }
+    if (pthread_create(&co[i], NULL, cons_worker, NULL) == 0) {
+      printf("CON %d\n", i);
+      fflush(NULL);
+    }
+  }
   // These are used to aggregate total numbers for main thread output
   int prs = 0; // total #matrices produced
   int cos = 0; // total #matrices consumed
@@ -111,14 +118,17 @@ int main (int argc, char * argv[])
 
   ProdConsStats *stats;
   // consume ProdConsStats from producer and consumer threads [HINT: return from join]
-  pthread_join(pr, &stats);
-  prs += stats->matrixtotal;
-  free(stats);
-  pthread_join(co, &stats);
-  cos += stats->matrixtotal;
-  consmul += stats->multtotal;
-  prodtot += prs;
-  constot += cos;
+  for (int i = 0; i < numw; i++) {  
+    pthread_join(pr[i], &stats);
+    prs += stats->matrixtotal;
+    free(stats);
+    pthread_join(co[i], &stats);
+    cos += stats->matrixtotal;
+    consmul += stats->multtotal;
+    prodtot += prs;
+    constot += cos;
+    free(stats);
+  }
   // add up total matrix stats in prs, cos, prodtot, constot, consmul
 
   printf("Sum of Matrix elements --> Produced=%d = Consumed=%d\n",prs,cos);
