@@ -85,40 +85,20 @@ int main (int argc, char * argv[])
 
   time_t t;
   // Seed the random number generator with the system time
-  srand(1);
+  srand((unsigned) time(&t));
 
 
   printf("Producing %d matrices in mode %d.\n",NUMBER_OF_MATRICES,MATRIX_MODE);
   printf("Using a shared buffer of size=%d\n", BOUNDED_BUFFER_SIZE);
   printf("With %d producer and consumer thread(s).\n",numw);
   printf("\n");
-  fflush(NULL);
-  printf("DEBUG 10\n");
-  fflush(NULL);
-  printf("DEBUG 12\n");
-  fflush(NULL);
-
   bigmatrix = (Matrix **) malloc(sizeof(Matrix *) * BOUNDED_BUFFER_SIZE);
-  printf("DEBUG 14\n");
-  fflush(NULL);
-
-  printf("DEBUG 132e43434S1");
-  fflush(NULL);
 
   // Here is an example to define one producer and one consumer
-  //struct ProdConsStats;
-  printf("DEBUG 1");
-  fflush(NULL);
-  pthread_t pr;
-  fflush(NULL);
-  fflush(NULL);
+  struct ProdConsStats;
 
-  printf("DEBUG 111");
-  fflush(NULL);
+  pthread_t pr;
   pthread_t co;
-  fflush(NULL);
-  printf("DEBUG 100");
-  fflush(NULL);
 
   // Add your code here to create threads and so on
   pthread_create(&pr, NULL, prod_worker, NULL);
