@@ -119,24 +119,24 @@ int main (int argc, char * argv[])
   ProdConsStats *stats;
   // consume ProdConsStats from producer and consumer threads [HINT: return from join]
   for (int i = 0; i < numw; i++) { 
-    pthread_join(pr[i], &stats);
+    pthread_join(pr[i], (void**)&stats);
     //printf("PRODUCER sum %d mult %d total %d\n",stats->sumtotal, stats->multtotal, stats->matrixtotal);
     //fflush(NULL); 
-    prs += stats->sumtotal;
-    prodtot += stats->matrixtotal;
+    prodtot += stats->sumtotal;
+    prs += stats->matrixtotal;
     free(stats);
-    pthread_join(co[i], &stats);
+    pthread_join(co[i], (void**)&stats);
     //printf("CONSUMER sum %d mult %d total %d\n",stats->sumtotal, stats->multtotal, stats->matrixtotal); 
     //fflush(NULL); 
-    cos += stats->sumtotal;
-    constot += stats->matrixtotal;
+    constot += stats->sumtotal;
+    cos += stats->matrixtotal;
     consmul += stats->multtotal;
     free(stats);
   }
   // add up total matrix stats in prs, cos, prodtot, constot, consmul
 
-  printf("Sum of Matrix elements --> Produced=%d = Consumed=%d\n",prs,cos);
-  printf("Matrices produced=%d consumed=%d multiplied=%d\n",prodtot,constot,consmul);
+  printf("Sum of Matrix elements --> Produced=%d = Consumed=%d\n",prodtot,constot);
+  printf("Matrices produced=%d consumed=%d multiplied=%d\n",prs,cos,consmul);
 
   return EXIT_SUCCESS;
 }
