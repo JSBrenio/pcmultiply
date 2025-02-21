@@ -20,28 +20,86 @@
 
 
 // Define Locks, Condition variables, and so on here
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t full = PTHREAD_COND_INITIALIZER;
+pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
 
-
+//struct counter_t counter;
+int fill = 0;
+int use = 0;
+int count = 0;
 
 // Bounded buffer put() get()
 int put(Matrix * value)
 {
-
+  bigmatrix[fill] = value;
+  fill = (fill + 1) % BOUNDED_BUFFER_SIZE;
+  count++;
+  //increment_cnt(&counter);
+  return EXIT_SUCCESS;
 }
 
 Matrix * get()
 {
-  return NULL;
+  Matrix *matrix = bigmatrix[use];
+  use = (use + 1) % BOUNDED_BUFFER_SIZE;
+  count--;
+  return matrix;
 }
 
 // Matrix PRODUCER worker thread
 void *prod_worker(void *arg)
 {
+  printf("DEBUG 3");
+  for (int i = 0; i < NUMBER_OF_MATRICES; i++) {
+    printf("LOOPING");
+    pthread_mutex_lock(&lock);
+    while(count == BOUNDED_BUFFER_SIZE) {
+      pthread_cond_wait(&empty, &lock);
+    }
+    put(GenMatrixRandom());
+    pthread_cond_signal(&full);
+    pthread_mutex_unlock(&lock);
+  }
   return NULL;
 }
 
 // Matrix CONSUMER worker thread
 void *cons_worker(void *arg)
 {
+  printf("DEBUG 2");
+
+  Matrix *m1, *m2, *m3;
+  for (int i=0;i<NUMBER_OF_MATRICES;i++)
+  {
+    pthread_mutex_lock(&lock);
+    while(count == 0) {
+      pthread_cond_wait(&full, &lock);
+    }
+    m1 = get();
+    pthread_cond_wait(&empty, &lock);
+
+    while(count == 0) {
+      pthread_cond_wait(&full, &lock);
+    }
+    m2 = get();
+    pthread_cond_wait(&empty, &lock);
+
+    m3 = MatrixMultiply(m1, m2);
+    while ( m3 == NULL) {
+        m2 = get();
+        m3 = MatrixMultiply(m1, m2);
+    }
+    DisplayMatrix(m1,stdout);
+    printf("    X\n");
+    DisplayMatrix(m2,stdout);
+    printf("    =\n");
+    DisplayMatrix(m3,stdout);
+    printf("\n");
+    FreeMatrix(m3);
+    FreeMatrix(m2);
+    FreeMatrix(m1);
+    pthread_mutex_unlock(&lock);
+  }
   return NULL;
 }
