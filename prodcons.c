@@ -31,6 +31,7 @@ int use = 0;
 int count = 0;
 int matrix_count = 0;
 int done = 0;
+int i = 0;
 
 // Bounded buffer put() get()
 int put(Matrix * value)
@@ -95,8 +96,7 @@ void *cons_worker(void *arg)
   fflush(NULL);
 
   Matrix *m1, *m2, *m3 = NULL;
-  int i;
-  while(i != NUMBER_OF_MATRICES) {
+  while (matrix_count < NUMBER_OF_MATRICES) {
     pthread_mutex_lock(&lock);
     printf("CON %lu LOOPING i = %d\n", pthread_self(),  matrix_count);
     fflush(NULL);
@@ -144,7 +144,7 @@ void *cons_worker(void *arg)
       printf("IMBOUTAIF\n");
       fflush(NULL);
       if (m3 == NULL) {
-        FreeMatrix(m2);
+        if(m2 != NULL)FreeMatrix(m2);
       }
     } while (m3 == NULL);
     conStats->multtotal++;
