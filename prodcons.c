@@ -56,25 +56,16 @@ Matrix * get()
 void *prod_worker(void *arg)
 {
   ProdConsStats *prodStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
-  printf("DEBUG PROD START\n");
-  fflush(NULL);
   while(1) {
     pthread_mutex_lock(&lock);
-    printf("PROD %lu LOOPING i = %d\n", pthread_self(),  matrix_count);
-    fflush(NULL);
     if (matrix_count >= NUMBER_OF_MATRICES) {
       pthread_mutex_unlock(&lock);
       break;
     }
 
     while(count == BOUNDED_BUFFER_SIZE) { // when full
-      printf("PROD SLEEPING\n");
-      printf("Thread ID: %lu \n", pthread_self());
-      fflush(NULL);
       pthread_cond_wait(&empty, &lock);
     }
-    printf("PROD AWAKE\n");
-    fflush(NULL);
     if (matrix_count < NUMBER_OF_MATRICES) {
       put(GenMatrixRandom());
       prodStats->matrixtotal++;
@@ -83,7 +74,7 @@ void *prod_worker(void *arg)
     pthread_mutex_unlock(&lock);
   }
   pthread_mutex_lock(&lock);
-  done++;
+  done = 1;
   pthread_mutex_unlock(&lock);
   return prodStats;
 }
@@ -92,15 +83,11 @@ void *prod_worker(void *arg)
 void *cons_worker(void *arg)
 {
   ProdConsStats *conStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
-  printf("DEBUG CON START\n");
-  fflush(NULL);
 
   Matrix *m1, *m2, *m3 = NULL;
   while(i != NUMBER_OF_MATRICES) {
     pthread_mutex_lock(&lock);
-    printf("CON %lu LOOPING i = %d\n", pthread_self(),  matrix_count);
-    fflush(NULL);
-    if (count == 0 && done == numw) {
+    if (count == 0 && done == 1) {
       pthread_mutex_unlock(&lock);
       return conStats;
     }
@@ -113,8 +100,6 @@ void *cons_worker(void *arg)
     conStats->matrixtotal++;
 
     do {
-      printf("I KEEP PRINTING\n");
-      fflush(NULL);
       if (count == 0 && done == numw) {
         pthread_mutex_unlock(&lock);
         return conStats;
