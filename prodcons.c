@@ -50,9 +50,12 @@ Matrix * get()
 // Matrix PRODUCER worker thread
 void *prod_worker(void *arg)
 {
-  printf("DEBUG 3");
+  printf("DEBUG PROD START\n");
+  fflush(NULL);
   for (int i = 0; i < NUMBER_OF_MATRICES; i++) {
-    printf("LOOPING");
+    printf("PROD LOOPING i = %d\n", i);
+    fflush(NULL);
+
     pthread_mutex_lock(&lock);
     while(count == BOUNDED_BUFFER_SIZE) {
       pthread_cond_wait(&empty, &lock);
@@ -67,27 +70,37 @@ void *prod_worker(void *arg)
 // Matrix CONSUMER worker thread
 void *cons_worker(void *arg)
 {
-  printf("DEBUG 2");
+  printf("DEBUG CON START\n");
+  fflush(NULL);
 
   Matrix *m1, *m2, *m3;
   for (int i=0;i<NUMBER_OF_MATRICES;i++)
   {
+    printf("CON LOOPING i = %d\n", i);
+    fflush(NULL);
     pthread_mutex_lock(&lock);
     while(count == 0) {
       pthread_cond_wait(&full, &lock);
     }
     m1 = get();
-    pthread_cond_wait(&empty, &lock);
+    pthread_cond_signal(&empty);
 
     while(count == 0) {
       pthread_cond_wait(&full, &lock);
     }
     m2 = get();
-    pthread_cond_wait(&empty, &lock);
+    pthread_cond_signal(&empty);
 
     m3 = MatrixMultiply(m1, m2);
-    while ( m3 == NULL) {
+    while (m3 == NULL) {
+        printf("I KEEP PRINTING\n");
+        fflush(NULL);
+        FreeMatrix(m2);
+        while(count == 0) {
+          pthread_cond_wait(&full, &lock);
+        }
         m2 = get();
+        pthread_cond_signal(&empty);
         m3 = MatrixMultiply(m1, m2);
     }
     DisplayMatrix(m1,stdout);
@@ -96,6 +109,8 @@ void *cons_worker(void *arg)
     printf("    =\n");
     DisplayMatrix(m3,stdout);
     printf("\n");
+    fflush(NULL);
+
     FreeMatrix(m3);
     FreeMatrix(m2);
     FreeMatrix(m1);
