@@ -124,6 +124,9 @@ void *cons_worker(void *arg)
       printf("IMDONEMULTING\n");
       fflush(NULL);
       if (m3 == NULL && i == NUMBER_OF_MATRICES) {
+        if (m3 != NULL) FreeMatrix(m3);
+        if (m2 != NULL) FreeMatrix(m2);
+        if (m1 != NULL) FreeMatrix(m1);
         pthread_mutex_unlock(&lock);
         return conStats;
       }
