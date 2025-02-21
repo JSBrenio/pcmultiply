@@ -118,12 +118,16 @@ int main (int argc, char * argv[])
 
   ProdConsStats *stats;
   // consume ProdConsStats from producer and consumer threads [HINT: return from join]
-  for (int i = 0; i < numw; i++) {  
+  for (int i = 0; i < numw; i++) { 
     pthread_join(pr[i], &stats);
+    //printf("PRODUCER sum %d mult %d total %d\n",stats->sumtotal, stats->multtotal, stats->matrixtotal);
+    //fflush(NULL); 
     prs += stats->sumtotal;
     prodtot += stats->matrixtotal;
     free(stats);
     pthread_join(co[i], &stats);
+    //printf("CONSUMER sum %d mult %d total %d\n",stats->sumtotal, stats->multtotal, stats->matrixtotal); 
+    //fflush(NULL); 
     cos += stats->sumtotal;
     constot += stats->matrixtotal;
     consmul += stats->multtotal;
