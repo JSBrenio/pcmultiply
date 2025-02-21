@@ -120,13 +120,13 @@ int main (int argc, char * argv[])
   // consume ProdConsStats from producer and consumer threads [HINT: return from join]
   for (int i = 0; i < numw; i++) {  
     pthread_join(pr[i], &stats);
-    prs += stats->matrixtotal;
+    prs += stats->sumtotal;
+    prodtot += stats->matrixtotal;
     free(stats);
     pthread_join(co[i], &stats);
-    cos += stats->matrixtotal;
+    cos += stats->sumtotal;
+    constot += stats->matrixtotal;
     consmul += stats->multtotal;
-    prodtot += prs;
-    constot += cos;
     free(stats);
   }
   // add up total matrix stats in prs, cos, prodtot, constot, consmul
