@@ -17,7 +17,7 @@
 int BOUNDED_BUFFER_SIZE;
 
 // Number of matrices to produce/consume
-#define LOOPS 1000
+#define LOOPS 1200
 int NUMBER_OF_MATRICES;
 
 // MATRIX MODE FLAG
