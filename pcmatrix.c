@@ -101,12 +101,12 @@ int main (int argc, char * argv[])
   // Add your code here to create threads and so on
   for (int i = 0; i < numw; i++) {
     if(pthread_create(&pr[i], NULL, prod_worker, NULL) == 0) {
-      printf("PROD %d\n", i);
-      fflush(NULL);
+      // printf("PROD %d\n", i);
+      // fflush(NULL);
     }
     if (pthread_create(&co[i], NULL, cons_worker, NULL) == 0) {
-      printf("CON %d\n", i);
-      fflush(NULL);
+      // printf("CON %d\n", i);
+      // fflush(NULL);
     }
   }
   // These are used to aggregate total numbers for main thread output

@@ -23,7 +23,6 @@
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t full = PTHREAD_COND_INITIALIZER;
 pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
-pthread_cond_t doneProducing = PTHREAD_COND_INITIALIZER;
 
 //struct counter_t counter;
 int fill = 0;
@@ -40,32 +39,25 @@ int put(Matrix * value)
   fill = (fill + 1) % BOUNDED_BUFFER_SIZE;
   count++;
   matrix_count++;
-  printf("PUT COUNT %d\n", count);
   return EXIT_SUCCESS;
 }
 
 Matrix * get()
 {
-  if (count <= 0) {  // Check if buffer is empty
-    return NULL;
-  }
   Matrix *matrix = bigmatrix[use];
   use = (use + 1) % BOUNDED_BUFFER_SIZE;
   count--;
-  printf("GET COUNT %d\n", count);
   return matrix;
 }
 
 // Matrix PRODUCER worker thread
 void *prod_worker(void *arg)
 {
-  ProdConsStats *prodStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
-  prodStats->matrixtotal = 0;
-  prodStats->multtotal = 0;
-  prodStats->sumtotal = 0;
+  ProdConsStats *prodStats = (ProdConsStats *)calloc(3, sizeof(ProdConsStats));
   while(1) {
     pthread_mutex_lock(&lock);
     if (matrix_count >= NUMBER_OF_MATRICES) {
+      pthread_cond_signal(&empty);
       pthread_mutex_unlock(&lock);
       break;
     }
@@ -77,13 +69,13 @@ void *prod_worker(void *arg)
       prodStats->sumtotal += SumMatrix(m);
       put(m);
       prodStats->matrixtotal++;
-      pthread_cond_broadcast(&full);
+      pthread_cond_signal(&full);
     }
     pthread_mutex_unlock(&lock);
   }
   pthread_mutex_lock(&lock);
   done++;
-  pthread_cond_broadcast(&full);
+  pthread_cond_signal(&full);
   pthread_mutex_unlock(&lock);
   return prodStats;
 }
@@ -91,14 +83,12 @@ void *prod_worker(void *arg)
 // Matrix CONSUMER worker thread
 void *cons_worker(void *arg)
 {
-  ProdConsStats *conStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
-  conStats->matrixtotal = 0;
-  conStats->multtotal = 0;
-  conStats->sumtotal = 0;
+  ProdConsStats *conStats = (ProdConsStats *)calloc(3, sizeof(ProdConsStats));
   Matrix *m1 = NULL, *m2 = NULL, *m3 = NULL;
   while (1) {
     pthread_mutex_lock(&lock);
-    if (count <= 0 && done == numw) {  // PROBLEM 1
+    if (count <= 0 && done >= numw) {
+      pthread_cond_signal(&full);
       pthread_mutex_unlock(&lock);
       break;
     }
@@ -106,52 +96,33 @@ void *cons_worker(void *arg)
       pthread_cond_wait(&full, &lock);
     }
     m1 = get();
-    if (m1 == NULL) {
-        pthread_mutex_unlock(&lock);
-        break;
-    }
+
     conStats->sumtotal += SumMatrix(m1);
     conStats->matrixtotal++;
-    pthread_cond_broadcast(&empty);
+    pthread_cond_signal(&empty);
 
-    while(count <= 0 && done != numw) {  // PROBLEM 2
-      pthread_cond_wait(&full, &lock);
-    }
-    m2 = get();
-    if (m2 == NULL) {
-        FreeMatrix(m1);
-        pthread_mutex_unlock(&lock);
-        break;
-    }
-    conStats->sumtotal += SumMatrix(m2);
-    conStats->matrixtotal++;
-    pthread_cond_broadcast(&empty);
-    m3 = MatrixMultiply(m1, m2);
-    while (m3 == NULL) {
-      if (count <= 0 && done == numw && m2 == NULL) {
-        printf("BREAKING 1\n");
-        fflush(NULL);
+    do {
+      if (count <= 0 && done >= numw) {
+        // pthread_cond_signal(&full);
         break;
       }
-      FreeMatrix(m2);
+      if (m2 != NULL) FreeMatrix(m2);
       while(count <= 0 && done != numw) {
         pthread_cond_wait(&full, &lock);
       }
       m2 = get();
-      if (m2 == NULL) {
-        printf("BREAKING 2\n");
-        fflush(NULL);
-        continue;
-      }
       conStats->sumtotal += SumMatrix(m2);
       conStats->matrixtotal++;
-      pthread_cond_broadcast(&empty);
+      pthread_cond_signal(&empty);
+
       m3 = MatrixMultiply(m1, m2);
-    }
-    if (m2 == NULL) {
+    } while (m3 == NULL);
+    if (count <= 0 && done >= numw) {
+      if (m1 != NULL) FreeMatrix(m1);
+      if (m2 != NULL) FreeMatrix(m2);
       pthread_mutex_unlock(&lock);
-      continue;
-    }
+      break;
+  }
     conStats->multtotal++;
     DisplayMatrix(m1,stdout);
     printf("    X\n");
@@ -164,8 +135,9 @@ void *cons_worker(void *arg)
     FreeMatrix(m3);
     FreeMatrix(m2);
     FreeMatrix(m1);
+    m1 = m2 = m3 = NULL;
     pthread_mutex_unlock(&lock);
   }
-  pthread_cond_broadcast(&empty);
+  pthread_cond_signal(&empty);
   return conStats;
 }
