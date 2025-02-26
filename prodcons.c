@@ -102,7 +102,11 @@ void *cons_worker(void *arg)
       pthread_mutex_unlock(&lock);
       break;
     }
-    while(count <= 0 && done != numw) {
+    while (count <= 0) {
+      if (done >= numw) { // No more matrices will be produced
+          pthread_mutex_unlock(&lock);
+          return conStats; // Exit gracefully
+      }
       pthread_cond_wait(&full, &lock);
     }
     m1 = get();
@@ -161,9 +165,10 @@ void *cons_worker(void *arg)
     printf("\n");
     fflush(NULL);
 
-    FreeMatrix(m3);
-    FreeMatrix(m2);
-    FreeMatrix(m1);
+    if (m1 != NULL) FreeMatrix(m1);
+    if (m2 != NULL) FreeMatrix(m2);
+    if (m3 != NULL) FreeMatrix(m3);
+    m1 = m2 = m3 = NULL;
     pthread_mutex_unlock(&lock);
   }
   pthread_cond_broadcast(&empty);

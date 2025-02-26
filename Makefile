@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-pthread -I. -Wall -Wno-int-conversion -D_GNU_SOURCE -fcommon
+CFLAGS=-pthread -I. -Wall -Wno-int-conversion -D_GNU_SOURCE -fcommon -g
 
 #binaries=queueprodcons cpa pthread_mult
 binaries=pcMatrix
