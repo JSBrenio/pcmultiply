@@ -112,7 +112,7 @@ int main (int argc, char * argv[])
       perror("Producer Thread");
     }
     if (pthread_create(&co[i], NULL, cons_worker, NULL) != 0) {
-      perror("Producer Thread");
+      perror("Consumer Thread");
     }
   }
   
