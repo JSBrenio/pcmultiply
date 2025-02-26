@@ -265,8 +265,5 @@ void *cons_worker(void *arg)
     pthread_mutex_unlock(&lock);
   }
   
-  // Final signals to avoid deadlocks
-  pthread_cond_signal(&full);
-
   return conStats; // Return statistics about work done by this consumer
 }

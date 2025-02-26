@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # Run with custom arguments
     custom_times = []
     for i in range(200):
-        arguments = [str(i), str(200 - (i * 2) % 200), "1000", "0"]
+        arguments = [str(i), str(200 - (i * 2) % 200), str(1000 + i * 2), str(i % 5)]
         if int(arguments[1]) <= 0: arguments[1] = "1"
         print(f"NUMWORK = {arguments[0]} BUFFER SIZE = {arguments[1]} LOOPS = {arguments[2]} MODE = {arguments[3]} TEST #{i + 1}")
         
