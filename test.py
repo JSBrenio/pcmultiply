@@ -36,8 +36,8 @@ if __name__ == '__main__':
     program_path = "./pcMatrix"  # Replace with the actual path to your executable
 
     # Run with default arguments
-    for i in range(1):
-        print(f"DEFAULT TEST #{i}")
+    for i in range(100):
+        print(f"DEFAULT TEST #{i + 1}")
         return_code, stdout, stderr = run_program(program_path, [])
         if return_code == 0: print(f"Stdout:\n{stdout}")
         elif return_code == -1: 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     for i in range(100):
         arguments = [str(i), str(200 - i * 2), "1000", "0"]
         if arguments[1] == "0": arguments[1] = "1"
-        print(f"NUMWORK = {arguments[0]} BUFFER SIZE = {arguments[1]} LOOPS = {arguments[2]} MODE = {arguments[3]} TEST #{i}")
+        print(f"NUMWORK = {arguments[0]} BUFFER SIZE = {arguments[1]} LOOPS = {arguments[2]} MODE = {arguments[3]} TEST #{i + 1}")
         return_code, stdout, stderr = run_program(program_path, arguments)
         if return_code == 0: print(f"Stdout:\n{stdout}")
         elif return_code == -1: 
