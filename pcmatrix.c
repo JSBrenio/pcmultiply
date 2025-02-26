@@ -131,6 +131,7 @@ int main (int argc, char * argv[])
     consmul += stats->multtotal;
     free(stats);
   }
+  free(bigmatrix);
   // add up total matrix stats in prs, cos, prodtot, constot, consmul
 
   printf("Sum of Matrix elements --> Produced=%d = Consumed=%d\n",prodtot,constot);

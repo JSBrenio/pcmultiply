@@ -173,7 +173,7 @@ void *cons_worker(void *arg)
     m1 = get();
     if (m1 == NULL) {
       pthread_mutex_unlock(&lock);
-      break;
+      continue;
     }
     
     // Update statistics
