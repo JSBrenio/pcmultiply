@@ -70,11 +70,11 @@ int done = 0;
  */
 int put(Matrix * value)
 {
-  bigmatrix[fill] = value;
-  fill = (fill + 1) % BOUNDED_BUFFER_SIZE;
-  count++;
-  matrix_count++;
-  return EXIT_SUCCESS;
+  bigmatrix[fill] = value;                  // Store the matrix pointer at the current fill position in the buffer
+  fill = (fill + 1) % BOUNDED_BUFFER_SIZE;  // Advance fill index with wrap-around when reaching buffer end
+  count++;                                  // Increment the count of items currently in the buffer
+  matrix_count++;                           // Increment the total count of matrices processed so far
+  return EXIT_SUCCESS;                      // Return success code indicating proper insertion
 }
 
 /**
@@ -89,12 +89,12 @@ int put(Matrix * value)
 Matrix * get()
 {
   if (count <= 0) {  // Check if buffer is empty
-    return NULL;
+    return NULL;     // Return NULL if there's nothing to retrieve
   }
-  Matrix *matrix = bigmatrix[use];
-  use = (use + 1) % BOUNDED_BUFFER_SIZE;
-  count--;
-  return matrix;
+  Matrix *matrix = bigmatrix[use];       // Get the matrix at the current use position
+  use = (use + 1) % BOUNDED_BUFFER_SIZE; // Advance use index with wrap-around
+  count--;                               // Decrement the count of items in buffer
+  return matrix;                         // Return the retrieved matrix pointer
 }
 
 /**
@@ -178,20 +178,20 @@ void *cons_worker(void *arg)
     
     // Check if we're done (buffer empty and all producers finished)
     if (count <= 0 && done >= numw) {
-      pthread_cond_signal(&full);  // Wake up any waiting consumers
-      pthread_mutex_unlock(&lock);
+      pthread_cond_signal(&full);  // Wake up any waiting consumers before unlocking
+      pthread_mutex_unlock(&lock); // Release the mutex lock before breaking
       break;
     }
     
     // Wait for matrix if buffer is empty
     while (count <= 0) {
       // Check again if we're done while waiting
-      if (done >= numw) {
-        pthread_cond_signal(&full);
-        pthread_mutex_unlock(&lock);
-        return conStats;
+      if (done >= numw) {              // Check if all producer threads have finished
+        pthread_cond_signal(&full);    // Signal any waiting consumer threads to check completion status
+        pthread_mutex_unlock(&lock);   // Release the mutex lock before returning
+        return conStats;               // Return consumer statistics and exit the thread
       }
-      pthread_cond_wait(&full, &lock);
+      pthread_cond_wait(&full, &lock); // Wait for producers to add matrices to buffer (releases lock while waiting)
     }
     
     // Get first matrix for multiplication
@@ -262,8 +262,7 @@ void *cons_worker(void *arg)
     // reset matrices again for next calculation
     m1 = m2 = m3 = NULL;
     
-    pthread_mutex_unlock(&lock);
+    pthread_mutex_unlock(&lock); // unlock after critical section
   }
-  
   return conStats; // Return statistics about work done by this consumer
 }
