@@ -37,8 +37,7 @@ def run_program(program, args):
 if __name__ == '__main__':
     
     pcMatrix = "./pcMatrix"
-    valgrind = "valgrind"
-    
+        
     # Run with default arguments
     default_times = []
     for i in range(100):
