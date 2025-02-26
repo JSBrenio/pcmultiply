@@ -18,11 +18,15 @@
 #include "pcmatrix.h"
 #include "prodcons.h"
 
+/**
+ * @file prodcons.c
+ * @author Jeremiah Brenio, Luke Chung
+ * @date Feb 2025
+ * @note AI was used to help document code.
+ */
 
 /**
  * Global variables for the producer-consumer buffer management
- * @authors Jeremiah Brenio, Luke Chung
- * AI was used to document code.
  */
 
 /**
@@ -93,37 +97,60 @@ Matrix * get()
   return matrix;
 }
 
-// Matrix PRODUCER worker thread
+/**
+ * Matrix PRODUCER worker thread
+ * Generates random matrices, calculates their element sum,
+ * and places them into the shared buffer for consumers.
+ * Continues until the required number of matrices have been produced.
+ * 
+ * @param arg Thread arguments (unused)
+ * @return Pointer to ProdConsStats containing producer thread statistics
+ */
 void *prod_worker(void *arg)
 {
+  // Initialize statistics tracking structure for this producer
   ProdConsStats *prodStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
   prodStats->matrixtotal = 0;
   prodStats->multtotal = 0;
   prodStats->sumtotal = 0;
+  
+  // Main production loop - continues until required number of matrices are produced
   while(1) {
+    // Acquire mutex lock to safely access shared buffer
     pthread_mutex_lock(&lock);
+    
+    // Check if we've reached the target number of matrices
     if (matrix_count >= NUMBER_OF_MATRICES) {
-      pthread_cond_signal(&empty);
-      pthread_mutex_unlock(&lock);
+      pthread_cond_signal(&empty);  // Signal any waiting producers
+      pthread_mutex_unlock(&lock);  // Release lock before exiting
       break;
     }
-    while(count == BOUNDED_BUFFER_SIZE) { // when full
+    
+    // Wait while buffer is full - producers must wait for consumers to free space
+    while(count == BOUNDED_BUFFER_SIZE) {
       pthread_cond_wait(&empty, &lock);
     }
+    
+    // Create and add a new matrix to the buffer if we haven't reached the limit
     if (matrix_count < NUMBER_OF_MATRICES) {
-      Matrix *m = GenMatrixRandom();
-      prodStats->sumtotal += SumMatrix(m);
-      put(m);
-      prodStats->matrixtotal++;
-      pthread_cond_signal(&full);
+      Matrix *m = GenMatrixRandom();  // Generate a random matrix
+      prodStats->sumtotal += SumMatrix(m);  // Update sum statistics
+      put(m);  // Add matrix to the shared buffer
+      prodStats->matrixtotal++;  // Increment count of matrices produced
+      pthread_cond_signal(&full);  // Signal consumers that data is available
     }
+    
+    // Release mutex lock
     pthread_mutex_unlock(&lock);
   }
+  
+  // Final cleanup - mark this producer as done and notify consumers
   pthread_mutex_lock(&lock);
-  done++;
-  pthread_cond_signal(&full);
+  done++;  // Increment count of finished producers
+  pthread_cond_signal(&full);  // Signal consumers to check for completion
   pthread_mutex_unlock(&lock);
-  return prodStats;
+  
+  return prodStats; // Return statistics about work done by this producer
 }
 
 /**
@@ -143,9 +170,7 @@ void *cons_worker(void *arg)
   conStats->sumtotal = 0;
   
   // Matrix pointers for multiplication operations
-  Matrix *m1 = NULL;  // First matrix in multiplication
-  Matrix *m2 = NULL;  // Second matrix in multiplication
-  Matrix *m3 = NULL;  // Result matrix
+  Matrix *m1 = NULL, *m2 = NULL, *m3 = NULL;
   
   // Main processing loop
   while (1) {
@@ -173,7 +198,7 @@ void *cons_worker(void *arg)
     m1 = get();
     if (m1 == NULL) {
       pthread_mutex_unlock(&lock);
-      continue;
+      continue; // try again if we fail to get a matrix
     }
     
     // Update statistics
@@ -182,7 +207,6 @@ void *cons_worker(void *arg)
     pthread_cond_signal(&empty);  // Signal space is available
     
     // Find a compatible matrix for multiplication
-    m3 = NULL;  // Reset result matrix
     while (m3 == NULL) {
       // Check if we're done while searching for compatible matrix
       if (count <= 0 && done >= numw) {
@@ -234,6 +258,8 @@ void *cons_worker(void *arg)
     if (m1 != NULL) FreeMatrix(m1);
     if (m2 != NULL) FreeMatrix(m2);
     if (m3 != NULL) FreeMatrix(m3);
+
+    // reset matrices again for next calculation
     m1 = m2 = m3 = NULL;
     
     pthread_mutex_unlock(&lock);
@@ -241,7 +267,6 @@ void *cons_worker(void *arg)
   
   // Final signals to avoid deadlocks
   pthread_cond_signal(&full);
-  pthread_cond_signal(&empty);
-  
-  return conStats;
+
+  return conStats; // Return statistics about work done by this consumer
 }
