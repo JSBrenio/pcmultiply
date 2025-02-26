@@ -126,88 +126,122 @@ void *prod_worker(void *arg)
   return prodStats;
 }
 
-// Matrix CONSUMER worker thread
+/**
+ * Matrix CONSUMER worker thread
+ * Retrieves matrices from the buffer, finds compatible pairs for multiplication,
+ * performs the multiplication, and displays the results.
+ * 
+ * @param arg Thread arguments (unused)
+ * @return Pointer to ProdConsStats containing consumer thread statistics
+ */
 void *cons_worker(void *arg)
 {
+  // Initialize statistics tracking
   ProdConsStats *conStats = (ProdConsStats *)malloc(sizeof(ProdConsStats));
   conStats->matrixtotal = 0;
   conStats->multtotal = 0;
   conStats->sumtotal = 0;
-  Matrix *m1 = NULL, *m2 = NULL, *m3 = NULL;
+  
+  // Matrix pointers for multiplication operations
+  Matrix *m1 = NULL;  // First matrix in multiplication
+  Matrix *m2 = NULL;  // Second matrix in multiplication
+  Matrix *m3 = NULL;  // Result matrix
+  
+  // Main processing loop
   while (1) {
     pthread_mutex_lock(&lock);
+    
+    // Check if we're done (buffer empty and all producers finished)
     if (count <= 0 && done >= numw) {
-      pthread_cond_signal(&full);
+      pthread_cond_signal(&full);  // Wake up any waiting consumers
       pthread_mutex_unlock(&lock);
       break;
     }
+    
+    // Wait for matrix if buffer is empty
     while (count <= 0) {
-      if (done >= numw) { // No more matrices will be produced
-          pthread_cond_signal(&full);
-          pthread_mutex_unlock(&lock);
-          return conStats;
+      // Check again if we're done while waiting
+      if (done >= numw) {
+        pthread_cond_signal(&full);
+        pthread_mutex_unlock(&lock);
+        return conStats;
       }
       pthread_cond_wait(&full, &lock);
     }
+    
+    // Get first matrix for multiplication
     m1 = get();
     if (m1 == NULL) {
-        pthread_mutex_unlock(&lock);
-        break;
+      pthread_mutex_unlock(&lock);
+      break;
     }
+    
+    // Update statistics
     conStats->sumtotal += SumMatrix(m1);
     conStats->matrixtotal++;
-    pthread_cond_signal(&empty);
-
-    while(count <= 0 && done < numw) {
-      pthread_cond_wait(&full, &lock);
-    }
-    m2 = get();
-    if (m2 == NULL) {
-        FreeMatrix(m1);
-        pthread_mutex_unlock(&lock);
-        break;
-    }
-    conStats->sumtotal += SumMatrix(m2);
-    conStats->matrixtotal++;
-    pthread_cond_signal(&empty);
-    m3 = MatrixMultiply(m1, m2);
+    pthread_cond_signal(&empty);  // Signal space is available
+    
+    // Find a compatible matrix for multiplication
+    m3 = NULL;  // Reset result matrix
     while (m3 == NULL) {
+      // Check if we're done while searching for compatible matrix
       if (count <= 0 && done >= numw) {
         break;
       }
-      FreeMatrix(m2);
-      while(count <= 0 && done != numw) {
+      
+      // Free previous second matrix if it exists
+      if (m2 != NULL) {
+        FreeMatrix(m2);
+        m2 = NULL;
+      }
+      
+      // Wait for more matrices if buffer is empty
+      while (count <= 0 && done != numw) {
         pthread_cond_wait(&full, &lock);
       }
+      
+      // Get second matrix for multiplication
       m2 = get();
       if (m2 == NULL) {
-        continue;
+        continue;  // Try again if we couldn't get a matrix
       }
+      
+      // Update statistics
       conStats->sumtotal += SumMatrix(m2);
       conStats->matrixtotal++;
-      pthread_cond_signal(&empty);
+      pthread_cond_signal(&empty);  // Signal space is available
+      
+      // Try to multiply matrices
       m3 = MatrixMultiply(m1, m2);
+      // If m3 is NULL, matrices weren't compatible - loop will continue
     }
-    if (m2 == NULL) {
-      pthread_mutex_unlock(&lock);
-      continue;
+    
+    // If we found compatible matrices, perform output
+    if (m3 != NULL) {
+      conStats->multtotal++;
+      
+      // Display the multiplication
+      DisplayMatrix(m1, stdout);
+      printf("    X\n");
+      DisplayMatrix(m2, stdout);
+      printf("    =\n");
+      DisplayMatrix(m3, stdout);
+      printf("\n");
+      fflush(NULL);
     }
-    conStats->multtotal++;
-    DisplayMatrix(m1,stdout);
-    printf("    X\n");
-    DisplayMatrix(m2,stdout);
-    printf("    =\n");
-    DisplayMatrix(m3,stdout);
-    printf("\n");
-    fflush(NULL);
-
+    
+    // Clean up matrices
     if (m1 != NULL) FreeMatrix(m1);
     if (m2 != NULL) FreeMatrix(m2);
     if (m3 != NULL) FreeMatrix(m3);
     m1 = m2 = m3 = NULL;
+    
     pthread_mutex_unlock(&lock);
   }
+  
+  // Final signals to avoid deadlocks
   pthread_cond_signal(&full);
   pthread_cond_signal(&empty);
+  
   return conStats;
 }
