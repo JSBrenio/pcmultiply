@@ -1,11 +1,11 @@
 import subprocess
 
-def run_program(program_path, args):
+def run_program(program, args):
     """
     Simulates C's fork, execvp, and wait using Python's subprocess module.
 
     Args:
-        program_path (str): The path to the executable program.
+        pcMatrix (str): The path to the executable program.
         args (list): A list of strings representing the arguments to pass to the program.
 
     Returns:
@@ -14,7 +14,7 @@ def run_program(program_path, args):
     try:
         # Simulate fork and execvp using subprocess.run
         result = subprocess.run(
-            [program_path] + args,  # Combine program path and arguments
+            [program] + args,  # Combine program path and arguments
             capture_output=True,  # Capture stdout and stderr
             text=True,  # Decode stdout and stderr as text
             check=True  # Raise an exception for non-zero return codes
@@ -33,12 +33,12 @@ def run_program(program_path, args):
         return -1, "", "Executable not found"
 
 if __name__ == '__main__':
-    program_path = "./pcMatrix"  # Replace with the actual path to your executable
-
+    pcMatrix = "./pcMatrix"
+    valgrind = "valgrind"
     # Run with default arguments
     for i in range(100):
         print(f"DEFAULT TEST #{i + 1}")
-        return_code, stdout, stderr = run_program(program_path, [])
+        return_code, stdout, stderr = run_program(pcMatrix, [])
         if return_code == 0: print(f"Stdout:\n{stdout}")
         elif return_code == -1: 
             print(f"Stderr:\n{stderr}")
@@ -51,8 +51,9 @@ if __name__ == '__main__':
         arguments = [str(i), str(200 - i * 2), "1000", "0"]
         if arguments[1] == "0": arguments[1] = "1"
         print(f"NUMWORK = {arguments[0]} BUFFER SIZE = {arguments[1]} LOOPS = {arguments[2]} MODE = {arguments[3]} TEST #{i + 1}")
-        return_code, stdout, stderr = run_program(program_path, arguments)
-        if return_code == 0: print(f"Stdout:\n{stdout}")
-        elif return_code == -1: 
+        return_code, stdout, stderr = run_program(pcMatrix, arguments)
+        if return_code == 0: 
+            print(f"Stdout:\n{stdout}")
+        else:
             print(f"Stderr:\n{stderr}")
             break

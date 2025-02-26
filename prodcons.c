@@ -19,19 +19,51 @@
 #include "prodcons.h"
 
 
-// Define Locks, Condition variables, and so on here
+/**
+ * Global variables for the producer-consumer buffer management
+ * @authors Jeremiah Brenio, Luke Chung
+ * AI was used to document code.
+ */
+
+/**
+ * @brief Mutex lock for synchronizing access to shared resources.
+ * This mutex is used to protect critical sections in the producer-consumer pattern.
+ */
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+/**
+ * @brief Condition variable to signal when the buffer is full.
+ * Producers wait on this condition when the buffer has no space available.
+ */
 pthread_cond_t full = PTHREAD_COND_INITIALIZER;
+
+/**
+ * @brief Condition variable to signal when the buffer is empty.
+ * Consumers wait on this condition when there are no items in the buffer to consume.
+ */
 pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
 
-//struct counter_t counter;
+/** Position where producer will put next item */
 int fill = 0;
+/** Position where consumer will get next item */
 int use = 0;
+/** State counter of items currently in buffer */
 int count = 0;
+/** State variable matrix_count Number of matrices processed */
 int matrix_count = 0;
+/** State Flag indicating completion status (0: not done, numwork: done) */
 int done = 0;
 
-// Bounded buffer put() get()
+
+/**
+ * @brief Adds a matrix to the bounded buffer
+ * 
+ * Places a matrix pointer in the buffer at the current fill position,
+ * updates fill index with wrap-around, and increments counters.
+ * 
+ * @param value Pointer to the Matrix to be added to the buffer
+ * @return EXIT_SUCCESS on successful addition
+ */
 int put(Matrix * value)
 {
   bigmatrix[fill] = value;
@@ -41,6 +73,15 @@ int put(Matrix * value)
   return EXIT_SUCCESS;
 }
 
+/**
+ * @brief Retrieves a matrix from the bounded buffer
+ * 
+ * Gets a matrix pointer from the buffer at the current use position,
+ * updates use index with wrap-around, and decrements count.
+ * Returns NULL if the buffer is empty.
+ * 
+ * @return Pointer to the retrieved Matrix, or NULL if buffer is empty
+ */
 Matrix * get()
 {
   if (count <= 0) {  // Check if buffer is empty
