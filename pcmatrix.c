@@ -29,6 +29,13 @@
  *  TCSS 422 - Operating Systems
  */
 
+/**
+ * @file pcmatrix.c
+ * @author Jeremiah Brenio, Luke Chung
+ * @date Feb 2025
+ * @note AI was used to help document code.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -92,13 +99,14 @@ int main (int argc, char * argv[])
   printf("Using a shared buffer of size=%d\n", BOUNDED_BUFFER_SIZE);
   printf("With %d producer and consumer thread(s).\n",numw);
   printf("\n");
+  // Allocate memory for the bounded buffer
   bigmatrix = (Matrix **) malloc(sizeof(Matrix *) * BOUNDED_BUFFER_SIZE);
-
-  // Here is an example to define one producer and one consumer
+  
+  // Declare arrays to hold producer and consumer thread IDs
   pthread_t pr[numw];
   pthread_t co[numw];
 
-  // Add your code here to create threads and so on
+  // Create producer and consumer threads
   for (int i = 0; i < numw; i++) {
     if(pthread_create(&pr[i], NULL, prod_worker, NULL) != 0) {
       perror("Producer Thread");
@@ -107,32 +115,36 @@ int main (int argc, char * argv[])
       perror("Producer Thread");
     }
   }
-  // These are used to aggregate total numbers for main thread output
-  int prs = 0; // total #matrices produced
-  int cos = 0; // total #matrices consumed
+  
+  // Initialize variables to track aggregate statistics
+  int prs = 0;     // total #matrices produced
+  int cos = 0;     // total #matrices consumed
   int prodtot = 0; // total sum of elements for matrices produced
   int constot = 0; // total sum of elements for matrices consumed
   int consmul = 0; // total # multiplications
 
+  // Pointer to hold returned statistics from threads
   ProdConsStats *stats;
-  // consume ProdConsStats from producer and consumer threads [HINT: return from join]
+  
+  // Join all threads and collect their statistics
   for (int i = 0; i < numw; i++) { 
+
+    // Join producer threads and collect their stats
     pthread_join(pr[i], (void**)&stats);
-    //printf("PRODUCER sum %d mult %d total %d\n",stats->sumtotal, stats->multtotal, stats->matrixtotal);
-    //fflush(NULL); 
     prodtot += stats->sumtotal;
     prs += stats->matrixtotal;
     free(stats);
+    
+    // Join consumer threads and collect their stats
     pthread_join(co[i], (void**)&stats);
-    //printf("CONSUMER sum %d mult %d total %d\n",stats->sumtotal, stats->multtotal, stats->matrixtotal); 
-    //fflush(NULL); 
     constot += stats->sumtotal;
     cos += stats->matrixtotal;
     consmul += stats->multtotal;
     free(stats);
   }
+  
+  // Clean up allocated memory for the buffer
   free(bigmatrix);
-  // add up total matrix stats in prs, cos, prodtot, constot, consmul
 
   printf("Sum of Matrix elements --> Produced=%d = Consumed=%d\n",prodtot,constot);
   printf("Matrices produced=%d consumed=%d multiplied=%d\n",prs,cos,consmul);
