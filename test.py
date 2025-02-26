@@ -1,4 +1,6 @@
 import subprocess
+import time
+import statistics
 
 def run_program(program, args):
     """
@@ -33,27 +35,58 @@ def run_program(program, args):
         return -1, "", "Executable not found"
 
 if __name__ == '__main__':
+    
     pcMatrix = "./pcMatrix"
     valgrind = "valgrind"
+    
     # Run with default arguments
+    default_times = []
     for i in range(100):
         print(f"DEFAULT TEST #{i + 1}")
+        start_time = time.time()
         return_code, stdout, stderr = run_program(pcMatrix, [])
+        end_time = time.time()
+        execution_time = end_time - start_time
+        default_times.append(execution_time)
+        
+        print(f"Execution time: {execution_time:.4f} seconds")
         if return_code == 0: print(f"Stdout:\n{stdout}")
         elif return_code == -1: 
             print(f"Stderr:\n{stderr}")
             break
-
-    # un with custom arguments
-    # Numwork, Buffer, Loops, matrix mode
-    
-    for i in range(100):
-        arguments = [str(i), str(200 - i * 2), "1000", "0"]
-        if arguments[1] == "0": arguments[1] = "1"
+        
+    # Run with custom arguments
+    custom_times = []
+    for i in range(200):
+        arguments = [str(i), str(200 - (i * 2) % 200), "1000", "0"]
+        if int(arguments[1]) <= 0: arguments[1] = "1"
         print(f"NUMWORK = {arguments[0]} BUFFER SIZE = {arguments[1]} LOOPS = {arguments[2]} MODE = {arguments[3]} TEST #{i + 1}")
+        
+        start_time = time.time()
         return_code, stdout, stderr = run_program(pcMatrix, arguments)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        custom_times.append(execution_time)
+        
+        print(f"Execution time: {execution_time:.4f} seconds")
         if return_code == 0: 
             print(f"Stdout:\n{stdout}")
         else:
             print(f"Stderr:\n{stderr}")
             break
+    
+    # Print default test statistics
+    if default_times:
+        print("\nDEFAULT TEST STATISTICS:")
+        print(f"Average time: {statistics.mean(default_times):.4f} seconds")
+        print(f"Min time: {min(default_times):.4f} seconds")
+        print(f"Max time: {max(default_times):.4f} seconds")
+        print(f"Standard deviation: {statistics.stdev(default_times):.4f} seconds") if len(default_times) > 1 else None
+    
+    # Print custom test statistics
+    if custom_times:
+        print("\nCUSTOM TEST STATISTICS:")
+        print(f"Average time: {statistics.mean(custom_times):.4f} seconds")
+        print(f"Min time: {min(custom_times):.4f} seconds")
+        print(f"Max time: {max(custom_times):.4f} seconds")
+        print(f"Standard deviation: {statistics.stdev(custom_times):.4f} seconds") if len(custom_times) > 1 else None
